@@ -1,0 +1,200 @@
+# VaultKey firmware
+
+Production-oriented first-prototype firmware for the VaultKey rev-D offline
+encrypted credential vault and TOTP authenticator.
+
+> **Status:** both flash variants compile and all native known-answer tests
+> pass. No physical board was attached, so OLED, DS1307, buttons, persistence,
+> USB enumeration, HID typing, and recovery are not yet hardware-validated.
+> Do not store real secrets until that testing and a security review are done.
+
+## Implemented capabilities
+
+- Automatic boot on USB power; no firmware wait for a BOOT button.
+- Event-driven four-button UI with debounce, short/long/repeat events.
+- First-boot six-digit PIN setup, masked entry, persistent retry delays,
+  five-minute default idle lock, PIN change, and RAM key clearing on lock.
+- Random per-device master key wrapped by a PBKDF2-HMAC-SHA256 PIN key.
+- Individually encrypted AES-256-GCM credential and TOTP records.
+- HKDF-separated record/metadata keys, authenticated manifest, verified
+  temporary writes, rename recovery, and cryptographic factory wipe.
+- Validated DS1307 BCD/CH-bit/calendar handling with no fake clock fallback.
+- RFC 4226/6238 HOTP/TOTP with SHA-1, SHA-256, SHA-512, six/eight digits,
+  configurable periods, 64-bit counters, and strict `otpauth://totp/` import.
+- SSD1306 128×64 UI for lock/setup, dashboard, vault, password reveal,
+  authorized HID actions, TOTP countdown, USB state, clock/settings, device
+  information, deletion confirmation, and factory reset.
+- One-port TinyUSB composite device: CDC-ACM plus HID boot keyboard.
+- Versioned JSON Lines CDC protocol with physical five-minute provisioning
+  authorization, time sync, credential add/update/search/delete, and TOTP
+  import. No plaintext export command exists.
+- 11 selectable keyboard layouts and configurable keystroke delay.
+
+## Project layout
+
+```text
+VaultKey_Firmware/
+├── include/                 Public module headers
+├── src/
+│   ├── authenticator/       HOTP, TOTP, otpauth parser, token manager
+│   ├── core/                Application, configuration, calendar utilities
+│   ├── hardware/            Buttons, OLED, RTC, USB, explicit no-op LED
+│   ├── interface/           OLED state machine and input workflows
+│   ├── security/            Crypto, key management, authentication, storage
+│   ├── usb/                 JSON Lines protocol
+│   └── vault/               Models, binary codec, credential manager
+├── test/test_algorithms/    Native RFC/crypto/codec known-answer tests
+├── docs/                    Hardware, USB, security, protocol, test reports
+├── scripts/build_release.sh Reproducible tests/build/merged images
+├── firmware/                Release `.bin` files and SHA-256 sums
+└── platformio.ini
+```
+
+The startup/runtime boundaries are described in
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+## Verified rev-D mapping
+
+| Function | GPIO | U1 pad | Notes |
+|---|---:|---:|---|
+| SELECT | 4 | 4 | Active-low to GND |
+| DOWN | 5 | 5 | Active-low to GND |
+| BACK | 6 | 6 | Active-low to GND |
+| UP | 7 | 7 | Active-low to GND |
+| I²C SDA | 8 | 12 | OLED side of PCA9306 |
+| I²C SCL | 9 | 17 | OLED side of PCA9306; 100 kHz |
+| OLED reset | 13 | 21 | SSD1306 reset |
+| USB D− | 19 | 13 | J1/U5 native USB path |
+| USB D+ | 20 | 14 | J1/U5 native USB path |
+| BOOT | 0 | 27 | R7 pull-up; **not externally accessible** |
+
+- OLED: SSD1306, 128×64, expected address `0x3C`.
+- RTC: DS1307+, address `0x68`, on the 5 V side of PCA9306.
+- OLED and RTC are one translated bus, not separate I²C controllers.
+- SW5 pulls EN low and only performs hardware reset.
+- D1 is a non-controllable green power LED.
+
+See [`docs/HARDWARE_MAPPING.md`](docs/HARDWARE_MAPPING.md) for the evidence and
+full topology.
+
+## Build and test
+
+Install PlatformIO, then run:
+
+```sh
+cd /home/rootx/Projects/VaultKey_Firmware
+pio test -e native
+pio run -e esp32-s3       # 8 MB ESP32-S3-WROOM-1U-N8
+pio run -e esp32-s3-4mb   # 4 MB alternate
+```
+
+To regenerate all release images:
+
+```sh
+PIO=pio ./scripts/build_release.sh
+```
+
+Pinned versions are listed in
+[`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md). If `pio` is in a virtual
+environment, set `PIO` to its full path.
+
+## Firmware images
+
+| File | Use |
+|---|---|
+| `firmware/VaultKey_revD_8MB_firmware.bin` | Application image at `0x10000`, N8 partition table already installed |
+| `firmware/VaultKey_revD_8MB_factory.bin` | Complete N8 image at `0x0` |
+| `firmware/VaultKey_revD_4MB_firmware.bin` | Application image at `0x10000`, N4 partition table already installed |
+| `firmware/VaultKey_revD_4MB_factory.bin` | Complete N4 image at `0x0` |
+
+Check `firmware/SHA256SUMS.txt` before flashing. Verify the fitted module's N4
+or N8 marking first; the PCB files do not identify its flash capacity.
+
+## Initial setup and controls
+
+On first boot, create and confirm a six-digit PIN using:
+
+| Button | PIN action | Normal action |
+|---|---|---|
+| UP | Increase current digit | Previous/increase |
+| DOWN | Decrease current digit | Next/decrease |
+| SELECT | Accept digit/confirm | Open/confirm |
+| BACK | Delete/cancel | Return/cancel HID |
+
+Hold BACK for two seconds from an unlocked screen to lock immediately. Entry
+deletion and factory reset require holding SELECT for two seconds on their
+dedicated warning screens.
+
+To provision, unlock the device, open **USB Functions**, select **Authorize CDC
+5 min**, then send protocol-v1 JSON Lines. See
+[`docs/USB_PROTOCOL.md`](docs/USB_PROTOCOL.md). HID typing always requires a
+separate confirmation on the credential screen.
+
+The four-button UI supports normal browsing, details, reveal, TOTP, HID, and
+deletion. Long text creation/search/editing is deliberately handled by the
+authorized CDC protocol rather than pretending the board has a keyboard.
+
+## Flashing
+
+### PlatformIO application upload
+
+With a healthy enumerated device:
+
+```sh
+pio run -e esp32-s3 -t upload --upload-port /dev/ttyACM0
+```
+
+TinyUSB CDC requests a forced reboot into the ESP32-S3 downloader. The port may
+disconnect and enumerate under a different identity during upload.
+
+### Complete factory image
+
+```sh
+esptool --chip esp32s3 --port /dev/ttyACM0 write-flash \
+  0x0 firmware/VaultKey_revD_8MB_factory.bin
+```
+
+Use the 4 MB image only for an N4 module.
+
+### ROM recovery
+
+The required sequence is GPIO0 low → pulse EN low → release GPIO0 → flash over
+the same USB-A data pair. Current rev-D exposes EN through SW5 but does **not**
+expose GPIO0. Therefore reliable recovery from broken TinyUSB firmware is a
+known hardware blocker. Add hidden GPIO0/EN/GND pads or a recessed BOOT switch
+in the next PCB revision. No USB D+/D− change and no external PHY are needed.
+
+No build in this project burns eFuses or changes USB PHY selection.
+
+Detailed commands are in
+[`docs/FLASHING_AND_RECOVERY.md`](docs/FLASHING_AND_RECOVERY.md).
+
+## Security and storage summary
+
+Secrets are never intentionally logged or stored plaintext. The NVS key
+envelope contains only KDF parameters and an authenticated encrypted master
+key. LittleFS contains authenticated ciphertext records and an encrypted
+manifest. A provisioned device does not silently format storage after a mount
+failure.
+
+Read [`docs/SECURITY.md`](docs/SECURITY.md) before using the device. Flash
+encryption, secure boot, NVS encryption, and irreversible eFuse settings remain
+disabled for development and require explicit authorization and a tested
+recovery policy.
+
+## Test status and limitations
+
+The detailed truthful status is in
+[`docs/TEST_REPORT.md`](docs/TEST_REPORT.md). In summary:
+
+- 8 MB build: PASS
+- 4 MB build: PASS
+- RFC 6238 SHA-1/SHA-256/SHA-512 vectors: PASS
+- RFC 4226 vectors: PASS
+- AES-GCM/PBKDF2/HKDF known-answer tests: PASS
+- Physical OLED/RTC/buttons/storage/USB tests: NOT RUN
+- Guaranteed rev-D ROM recovery: BLOCKED by missing GPIO0 access
+
+Compilation is not treated as proof of hardware operation.
+Use [`docs/PHYSICAL_TEST_PLAN.md`](docs/PHYSICAL_TEST_PLAN.md) to record the
+first-board validation without promoting untested items to PASS.

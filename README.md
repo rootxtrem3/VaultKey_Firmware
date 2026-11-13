@@ -84,7 +84,7 @@ full topology.
 Install PlatformIO, then run:
 
 ```sh
-cd /home/rootx/Projects/VaultKey_Firmware
+cd VaultKey_Firmware
 pio test -e native
 pio run -e esp32-s3       # 8 MB ESP32-S3-WROOM-1U-N8
 pio run -e esp32-s3-4mb   # 4 MB alternate

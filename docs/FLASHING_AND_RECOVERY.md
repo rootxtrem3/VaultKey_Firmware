@@ -26,7 +26,7 @@ application:
 
 ```sh
 esptool --chip esp32s3 --port /dev/ttyACM0 \
-  write-flash 0x0 firmware/VaultKey_revD_8MB_factory.bin
+  write-flash 0x0 firmware/VaultKey_revE_8MB_factory.bin
 ```
 
 The application-only image is written at `0x10000` only when a matching
@@ -34,7 +34,7 @@ partition table is already installed:
 
 ```sh
 esptool --chip esp32s3 --port /dev/ttyACM0 \
-  write-flash 0x10000 firmware/VaultKey_revD_8MB_firmware.bin
+  write-flash 0x10000 firmware/VaultKey_revE_8MB_firmware.bin
 ```
 
 ## Normal updates after TinyUSB firmware is running
@@ -57,10 +57,11 @@ The ESP32-S3 recovery sequence is:
 4. Release GPIO0 after the ROM downloader enumerates.
 5. Flash a known-good complete image at offset `0x0`.
 
-Rev-D has no BOOT switch or GPIO0 pad, so this procedure is currently blocked
-without physically probing U1.27/R7. SW5 alone cannot force download mode.
+Rev-E provides labelled pads TP1.1 (BOOT) and TP1.2 (GND). Bridge them, pulse
+SW5/EN, and keep the bridge in place until the ROM downloader enumerates; then
+remove the bridge and flash. SW5 alone cannot force download mode.
 
-For the next PCB revision, retain R7 and add labelled hidden pads for:
+The Rev-E recovery interface is:
 
 ```text
 GPIO0 / BOOT
@@ -70,8 +71,8 @@ USB D−
 USB D+
 ```
 
-GPIO0, EN, and GND are the minimum reliable recovery set. Place them where a
-pogo fixture or recessed service opening can reach them.
+GPIO0-to-GND bridging plus the existing recessed EN reset is the recovery set.
+Pad accessibility and ROM enumeration need physical validation on the board.
 
 ## Factory reset is not firmware recovery
 

@@ -61,6 +61,7 @@ void Application::begin() {
     if (displayReady) display_.showBoot("Hardware init");
 
     led_.begin();
+    if (led_.available()) led_.set(LEDPattern::Startup);
     if (!Crypto::selfTest()) setFatal("CRYPTO_SELF_TEST_FAILED");
     if (!TOTP::selfTest()) setFatal("TOTP_SELF_TEST_FAILED");
     bool configurationReady = configuration_.begin();
@@ -112,6 +113,8 @@ void Application::begin() {
     ui_.begin();
     startupState_ = fatal_ ? StartupState::Fault : StartupState::LockedHome;
     if (fatal_ && displayReady) display_.showError("STARTUP ERROR", fatalCode_);
+    if (led_.available())
+        led_.set(fatal_ ? LEDPattern::Error : LEDPattern::Normal);
 }
 
 void Application::update() {
@@ -165,7 +168,10 @@ bool Application::unlock(const std::string& pin) {
     if (fatal_) return false;
     uint64_t unixTime = 0;
     const bool rtcValid = rtc_.now(unixTime);
-    if (!authentication_.unlock(pin, rtcValid, unixTime, millis())) return false;
+    if (!authentication_.unlock(pin, rtcValid, unixTime, millis())) {
+        if (led_.available()) led_.set(LEDPattern::AuthFailure);
+        return false;
+    }
     if (!openAuthenticatedStorage()) {
         authentication_.lock();
         storage_.lock();
@@ -173,6 +179,7 @@ bool Application::unlock(const std::string& pin) {
         return false;
     }
     noteActivity();
+    if (led_.available()) led_.set(LEDPattern::Unlock);
     return true;
 }
 
@@ -199,6 +206,7 @@ void Application::lock() {
     storage_.lock();
     authentication_.lock();
     ui_.forceLocked();
+    if (led_.available()) led_.set(LEDPattern::Normal);
 }
 
 bool Application::factoryReset(const std::string& pin) {
@@ -206,6 +214,7 @@ bool Application::factoryReset(const std::string& pin) {
         return false;
     }
     if (!keyManager_.markFactoryResetPending()) return false;
+    if (led_.available()) led_.set(LEDPattern::Wipe);
     usb_.cancelTyping();
     revokeProvisioning();
     credentials_.clear();
@@ -569,6 +578,7 @@ void Application::setFatal(const char* code) {
     if (fatal_) return;
     fatal_ = true;
     fatalCode_ = code;
+    if (led_.available()) led_.set(LEDPattern::Error);
 }
 
 const char* Application::startupStateText() const {

@@ -1,6 +1,6 @@
 # VAULTKEY FIRMWARE REPORT
 
-Test date: 2026-11-13  
+Test date: 2026-11-24
 Source folder: `/home/rootx/Projects/VaultKey_Firmware`  
 Hardware connected during this run: **NO**
 
@@ -8,8 +8,8 @@ Hardware connected during this run: **NO**
 VAULTKEY FIRMWARE REPORT
 
 BUILD
-  Compilation (8 MB): PASS
-  Compilation (4 MB): PASS
+  Compilation (8 MB, Rev E): PASS
+  Compilation (4 MB, Rev E): PASS
   Firmware binary: YES
   Factory merged images: YES
   Source complete: YES
@@ -45,7 +45,7 @@ USB
   TinyUSB HID keyboard: BUILD PASS; ENUMERATION NOT RUN
   Composite operation: BUILD PASS; HOST TEST NOT RUN
   Normal application-triggered flashing: NOT RUN
-  ROM recovery: BLOCKED BY REV-D GPIO0 ACCESS
+  ROM recovery: REV-E BOOT/GND PADS ADDED; PHYSICAL TEST NOT RUN
 
 UI
   Navigation: BUILD PASS; PHYSICAL TEST NOT RUN
@@ -54,10 +54,10 @@ UI
   Settings: BUILD PASS; DISPLAY TEST NOT RUN
 
 UNRESOLVED ISSUES:
-  1. No physical rev-D board was attached, so no hardware-dependent item can
+  1. No physical rev-E board was attached, so no hardware-dependent item can
      honestly be marked PASS.
-  2. Rev-D has no BOOT switch or GPIO0 test pad. Reliable ROM recovery from a
-     broken TinyUSB application is not guaranteed.
+  2. Rev-E adds BOOT/GND recovery pads and MCU LED control; ROM recovery and
+     LED operation need physical validation.
   3. The fitted WROOM-1U flash capacity is unknown; separate N8 and N4 images
      are supplied and the module marking must be checked before flashing.
   4. USB enumeration, CDC, HID typing, keyboard layouts, reconnect, and normal
@@ -67,8 +67,7 @@ UNRESOLVED ISSUES:
   6. LittleFS atomic-update recovery needs deliberate power interruption tests.
   7. Firmware has not received an independent security audit. ESP32 secure
      boot, flash encryption, and NVS encryption remain deliberately disabled.
-  8. D1 is power-only, so requested programmable LED patterns are impossible
-     on rev-D.
+  8. GPIO-controlled D1 patterns need physical validation on Rev-E.
   9. Long credential text and otpauth secrets are provisioned/edited through
      authorized CDC; the four-button UI browses, reveals, types, and deletes
      records but does not provide a practical full text editor.

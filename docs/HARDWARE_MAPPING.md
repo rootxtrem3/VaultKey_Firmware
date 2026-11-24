@@ -1,4 +1,4 @@
-# VaultKey rev-D hardware mapping
+# VaultKey rev-E hardware mapping
 
 This mapping was extracted from the actual files in
 `/home/rootx/Projects/VaultKey_USB`, principally `VaultKey_USB.kicad_sch`,
@@ -18,7 +18,8 @@ This mapping was extracted from the actual files in
 | OLED reset | `OLED_RST` | 13 | 21 | Dedicated reset output |
 | USB D− | `USB_DM` | 19 | 13 | Native USB D− through U5 |
 | USB D+ | `USB_DP` | 20 | 14 | Native USB D+ through U5 |
-| Boot strap | `BOOT` | 0 | 27 | R7 10 kΩ pull-up; no switch/test pad on rev-D |
+| Boot strap | `BOOT` | 0 | 27 | R7 pull-up; TP1.1 bridges to TP1.2 GND |
+| Status LED | `LED_GPIO` | 1 | 39 | Active high through R5 1 kΩ |
 | Chip enable/reset | `EN` | — | 3 | R6 10 kΩ pull-up, C7 100 nF to GND, SW5 to GND |
 
 ## Display
@@ -57,18 +58,15 @@ ESP32 GPIO8/9 --- OLED_SDA/SCL ---+--- SSD1306 DS1 (3.3 V side)
 - R6/C7 allow EN to rise automatically, so firmware starts on USB insertion.
 - SW5 is the recessed EN-to-GND hardware reset. It never maps to a GPIO and
   firmware does not interpret it as factory reset.
-- The current rev-D PCB has **no SW6 BOOT switch** despite the older component
-  list in the specification. `BOOT`/GPIO0 only connects to U1.27 and R7.
-- Consequently, a broken USB-OTG application cannot be guaranteed recoverable
-  without physically accessing GPIO0. A future PCB revision should add hidden
-  GPIO0, EN, and GND programming pads or a recessed GPIO0-to-GND switch.
+- TP1 exposes labelled recovery pads: TP1.1 is BOOT/GPIO0 and TP1.2 is GND.
+  Bridge them while pulsing SW5/EN to enter ROM download mode.
 
 ## Other verified absences
 
-- D1 is a green **power LED wired to the 3.3 V rail**, not an MCU output.
+- D1 is a green active-high status LED driven by GPIO1 through R5 (1 kΩ).
 - There is no RGB/WS2812 LED.
 - There is no RTC interrupt connection.
 - There is no buzzer.
 
-Firmware represents the LED as explicitly unavailable and never claims to
-produce programmable status patterns on rev-D.
+Firmware exposes non-blocking patterns for startup, unlock, failed
+authentication, wipe, and fatal error states.

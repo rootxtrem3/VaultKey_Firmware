@@ -25,12 +25,12 @@ merge_image() {
         0x10000 ".pio/build/${environment}/firmware.bin"
 }
 
-merge_image esp32-s3 8MB firmware/VaultKey_revD_8MB_factory.bin
-merge_image esp32-s3-4mb 4MB firmware/VaultKey_revD_4MB_factory.bin
+merge_image esp32-s3 8MB firmware/VaultKey_revE_8MB_factory.bin
+merge_image esp32-s3-4mb 4MB firmware/VaultKey_revE_4MB_factory.bin
 cp .pio/build/esp32-s3/firmware.bin \
-    firmware/VaultKey_revD_8MB_firmware.bin
+    firmware/VaultKey_revE_8MB_firmware.bin
 cp .pio/build/esp32-s3-4mb/firmware.bin \
-    firmware/VaultKey_revD_4MB_firmware.bin
+    firmware/VaultKey_revE_4MB_firmware.bin
 
 (cd firmware && sha256sum VaultKey_*.bin > SHA256SUMS.txt)
 echo "Release binaries written to firmware/"

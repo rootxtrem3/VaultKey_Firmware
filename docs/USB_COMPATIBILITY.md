@@ -54,16 +54,13 @@ device because TinyUSB itself provides both CDC and HID.
 3. **ROM recovery:** hold GPIO0 low while pulsing EN low, then release GPIO0 and
    flash the ROM downloader over the same USB data pair.
 
-## Verified limitation
+## Recovery interface
 
-Rev-D does not expose GPIO0. If firmware fails before TinyUSB starts, has bad
-descriptors, reconfigures GPIO19/20, or enters a reset loop, normal automatic
-flashing may be unavailable. SW5 alone only resets EN while R7 keeps GPIO0
-high, so it boots the same application again.
-
-Reliable recovery is therefore **not physically testable or guaranteed on the
-current board**. Add hidden GPIO0, EN, and GND pads (or a recessed BOOT switch)
-before calling the hardware production-recoverable. No D+/D− reroute is needed.
+Rev-E provides labelled BOOT/GND recovery pads. Bridge TP1.1 (GPIO0/BOOT) to
+TP1.2 (GND), pulse SW5/EN, then remove the bridge after the ROM downloader
+enumerates. This path avoids dependence on application firmware. Physical
+accessibility and ROM entry still need validation on an assembled board. No
+D+/D− reroute is needed.
 
 ## Host validation still required
 

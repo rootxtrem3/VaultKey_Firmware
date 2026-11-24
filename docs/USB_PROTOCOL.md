@@ -15,7 +15,7 @@ Request:
 Successful response:
 
 ```json
-{"v":1,"id":"client-1","product":"VaultKey","firmware":"0.1.0-prototype","hardware":"rev-D","protocol":1,"ok":true}
+{"v":1,"id":"client-1","product":"VaultKey","firmware":"0.1.0-prototype","hardware":"rev-E","protocol":1,"ok":true}
 ```
 
 Error response:

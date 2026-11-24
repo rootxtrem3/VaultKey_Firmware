@@ -8,13 +8,13 @@
 #endif
 
 #ifndef VAULTKEY_HARDWARE_VERSION
-#define VAULTKEY_HARDWARE_VERSION "rev-D"
+#define VAULTKEY_HARDWARE_VERSION "rev-E"
 #endif
 
 namespace vaultkey::hardware {
 
 // Schematic-derived ESP32-S3-WROOM-1U assignments. Do not change these
-// without changing and re-verifying the rev-D schematic and PCB.
+// without changing and re-verifying the rev-E schematic and PCB.
 inline constexpr int PIN_BUTTON_SELECT = 4;  // U1.4, SW_SELECT
 inline constexpr int PIN_BUTTON_DOWN = 5;    // U1.5, SW_DOWN
 inline constexpr int PIN_BUTTON_BACK = 6;    // U1.6, SW_BACK
@@ -25,6 +25,7 @@ inline constexpr int PIN_OLED_RESET = 13;    // U1.21, OLED_RST
 inline constexpr int PIN_USB_DM = 19;         // U1.13, USB_D-/GPIO19
 inline constexpr int PIN_USB_DP = 20;         // U1.14, USB_D+/GPIO20
 inline constexpr int PIN_BOOT = 0;            // U1.27, pulled high by R7
+inline constexpr int PIN_STATUS_LED = 1;      // U1.39 -> R5 -> D1
 
 inline constexpr uint8_t OLED_ADDRESS = 0x3C;
 inline constexpr uint8_t RTC_ADDRESS = 0x68;
@@ -32,10 +33,9 @@ inline constexpr int OLED_WIDTH = 128;
 inline constexpr int OLED_HEIGHT = 64;
 inline constexpr uint32_t I2C_FREQUENCY_HZ = 100000;
 
-// D1 is wired from 3.3 V through R5 to ground. It is a power indicator and
-// has no MCU GPIO, so firmware status patterns are unavailable on rev-D.
-inline constexpr bool HAS_CONTROLLABLE_LED = false;
-inline constexpr bool HAS_BOOT_CONTROL = false;
+// D1 is active high through R5. GPIO0 recovery is available via TP1.1->TP1.2.
+inline constexpr bool HAS_CONTROLLABLE_LED = true;
+inline constexpr bool HAS_BOOT_CONTROL = true;
 inline constexpr bool HAS_RTC_INTERRUPT = false;
 inline constexpr bool HAS_BUZZER = false;
 
